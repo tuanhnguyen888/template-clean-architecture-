@@ -1,0 +1,42 @@
+<!--index.html-->
+<!--header.html-->
+
+<!doctype html>
+<html>
+
+  <head>
+    <title>{{ .title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="/css/index.css" />
+  </head>
+
+  <body class="container">
+
+    <div class="list py-4 bg-light">
+        <div class="container">  
+            <div class="row">
+                <!--Loop over the list of videos -->        
+                {{range .Server }}        
+                    <div class="col-md-4">
+                        <div class="card mb-4 shadow-sm">        
+                            <div class="card-body">    
+                                <p class="card-text">
+                                    <h4>{{.ID}} - {{.Name}}</h4>
+                                    <p>{{.Ipv4}} - {{.Status}}</p>
+                                </p>
+                            </div>
+                        </div>
+                    </div>        
+                {{end}}
+            </div>          
+        </div>
+    </div>
+
+<!--footer.html-->
+
+</body>
+
+</html>
