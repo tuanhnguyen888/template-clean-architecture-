@@ -94,3 +94,5 @@ func main() {
 	}
 	app.Run(":" + port)
 }
+
+// JWT
