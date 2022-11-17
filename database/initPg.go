@@ -45,5 +45,7 @@ func NewInitPG() *gorm.DB {
 		return db
 	}
 	db.AutoMigrate(entity.Server{})
+	db.AutoMigrate(entity.User{})
+
 	return db
 }

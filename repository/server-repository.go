@@ -25,7 +25,11 @@ func NewServerRepository(db *gorm.DB) ServerRepository {
 
 // CloseDB implements ServerRepository
 func (db *database) CloseDB() {
-	panic("Failed to close database")
+	dbSQl, err := db.DB.DB()
+	if err != nil {
+		panic("Failed to close connection from database")
+	}
+	dbSQl.Close()
 
 }
 

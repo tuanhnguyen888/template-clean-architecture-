@@ -47,9 +47,13 @@ func (jwtSrv *jwtService) GenerateToken(username string, admin bool) (string, er
 		username,
 		admin,
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour).Unix(),
-			Issuer:    jwtSrv.issuer,
+			Audience:  "",
+			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
+			Id:        "",
 			IssuedAt:  time.Now().Unix(),
+			Issuer:    jwtSrv.issuer,
+			NotBefore: 0,
+			Subject:   "",
 		},
 	}
 

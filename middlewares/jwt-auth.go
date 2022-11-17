@@ -1,43 +1,39 @@
 package middlewares
 
 import (
-	"log"
+	"net/http"
+	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/tuanhnguyen888/server/service"
 )
 
 // AuthorizeJWT validates the token from the http request, returning a 401 if it's not valid
 func AuthorizeJWT() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		const BEARER_SCHEMA = "Bearer "
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(401, gin.H{
-				"message": "Not log in yet",
-			})
+	return func(ctx *gin.Context) {
+		var token string
+		cookie, err := ctx.Cookie("token")
+
+		authorizationHeader := ctx.Request.Header.Get("Authorization")
+		fields := strings.Fields(authorizationHeader)
+
+		if len(fields) != 0 && fields[0] == "Bearer" {
+			token = fields[1]
+		} else if err == nil {
+			token = cookie
 		}
 
-		tokenString := authHeader[len(BEARER_SCHEMA):]
-
-		token, _ := service.NewJWTService().ValidateToken(tokenString)
-
-		if token.Valid {
-			claims := token.Claims.(jwt.MapClaims)
-			log.Println("Claims[Name]: ", claims["name"])
-			log.Println("Claims[Admin]: ", claims["admin"])
-			log.Println("Claims[Issuer]: ", claims["iss"])
-			log.Println("Claims[IssuedAt]: ", claims["iat"])
-			log.Println("Claims[ExpiresAt]: ", claims["exp"])
-
-			c.Next()
-		} else {
-			// log.Println(err)
-			c.JSON(401, gin.H{
-				"message": "NonAuthoritative",
-			})
+		if token == "" {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "You are not logged in"})
 			return
 		}
+
+		_, err = service.NewJWTService().ValidateToken(token)
+
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": err.Error()})
+			return
+		}
+
 	}
 }

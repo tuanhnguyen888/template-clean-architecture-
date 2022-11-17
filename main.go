@@ -13,17 +13,20 @@ import (
 )
 
 var (
-	db                                        = database.NewInitPG()
-	serverRepo    repository.ServerRepository = repository.NewServerRepository(db)
-	serverService service.ServerService       = service.New(serverRepo)
-	loginService  service.LoginService        = service.NewLoginService()
-	jwtService    service.JWTService          = service.NewJWTService()
+	db                                     = database.NewInitPG()
+	serverRepo repository.ServerRepository = repository.NewServerRepository(db)
+	userRepo   repository.UserRepository   = repository.NewUserRepository(db)
+
+	serverService service.ServerService = service.New(serverRepo)
+	authService   service.AuthService   = service.NewAuthService(userRepo)
+	jwtService    service.JWTService    = service.NewJWTService()
 
 	serverController controller.ServerController = controller.New(serverService)
-	loginController  controller.LoginController  = controller.NewLoginController(loginService, jwtService)
+	authController   controller.AuthController   = controller.NewAuthController(authService, jwtService)
 )
 
 func main() {
+	defer serverRepo.CloseDB()
 	app := gin.New()
 	app.Use(gin.Recovery())
 	app.Use(gin.Logger())
@@ -32,19 +35,13 @@ func main() {
 
 	app.LoadHTMLGlob("templates/*.html")
 
-	// login
-	app.POST("/login", func(ctx *gin.Context) {
-		token := loginController.Login(ctx)
-		if token != "" {
-			ctx.JSON(http.StatusOK, gin.H{
-				"token": token,
-			})
-		} else {
-			ctx.JSON(http.StatusUnauthorized, gin.H{
-				"message": "Unauthorized",
-			})
-		}
-	})
+	// auth
+	apiAuth := app.Group("/api/auth")
+	{
+		apiAuth.POST("/register", authController.Register)
+		apiAuth.POST("/login", authController.Login)
+		apiAuth.GET("/logout", authController.LogoutUser)
+	}
 
 	apiRoutes := app.Group("/api")
 	apiRoutes.Use(middlewares.AuthorizeJWT())
