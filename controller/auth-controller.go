@@ -88,6 +88,6 @@ func (c *authController) Login(ctx *gin.Context) {
 }
 
 func (c *authController) LogoutUser(ctx *gin.Context) {
-	ctx.SetCookie("token", "", -1, "/", "localhost", false, true)
+	ctx.SetCookie("token", "", 150, "/", "localhost", false, true)
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }

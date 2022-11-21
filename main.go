@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 
@@ -13,20 +14,34 @@ import (
 )
 
 var (
-	db                                     = database.NewInitPG()
+	db                 = database.NewInitPG()
+	redis, errRedis    = database.NewInitResdis()
+	elasic, errElastic = database.NewInitEsClient()
+
 	serverRepo repository.ServerRepository = repository.NewServerRepository(db)
 	userRepo   repository.UserRepository   = repository.NewUserRepository(db)
 
-	serverService service.ServerService = service.New(serverRepo)
-	authService   service.AuthService   = service.NewAuthService(userRepo)
-	jwtService    service.JWTService    = service.NewJWTService()
+	serverService    service.ServerService = service.NewServerService(serverRepo)
+	authService      service.AuthService   = service.NewAuthService(userRepo)
+	jwtService       service.JWTService    = service.NewJWTService()
+	logRorateService service.LogRorate     = service.NewLogrorate()
 
-	serverController controller.ServerController = controller.New(serverService)
-	authController   controller.AuthController   = controller.NewAuthController(authService, jwtService)
+	serverController   controller.ServerController   = controller.NewServerController(serverService, logRorateService, db)
+	excelController    controller.ExcelController    = controller.NewExcelController(db, serverService)
+	authController     controller.AuthController     = controller.NewAuthController(authService, jwtService)
+	periodicController controller.PeriodicController = controller.NewPeriodicController(serverService, logRorateService, db, redis, elasic)
 )
 
 func main() {
 	defer serverRepo.CloseDB()
+	if errElastic != nil {
+		log.Panic(errElastic)
+	}
+
+	if errRedis != nil {
+		log.Panic(errRedis)
+	}
+
 	app := gin.New()
 	app.Use(gin.Recovery())
 	app.Use(gin.Logger())
@@ -46,9 +61,7 @@ func main() {
 	apiRoutes := app.Group("/api")
 	apiRoutes.Use(middlewares.AuthorizeJWT())
 	{
-		apiRoutes.GET("servers", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, serverController.FindAll())
-		})
+		apiRoutes.GET("servers", serverController.FindAll)
 
 		apiRoutes.POST("server", func(ctx *gin.Context) {
 			err := serverController.Create(ctx)
@@ -79,12 +92,17 @@ func main() {
 			}
 
 		})
+
+		apiRoutes.POST("/exportServer", excelController.ExportServer)
+		apiRoutes.POST("/importServer", excelController.ImportServer)
 	}
 
 	viewRoutes := app.Group("/view")
 	{
 		viewRoutes.GET("/servers", serverController.ShowAll)
 	}
+
+	go periodicController.Cron()
 
 	// We can setup this env variable from the EB console
 	port := os.Getenv("PORT")

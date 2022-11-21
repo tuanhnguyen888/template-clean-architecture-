@@ -16,7 +16,7 @@ type serverService struct {
 	serverRepo repository.ServerRepository
 }
 
-func New(serverRepository repository.ServerRepository) ServerService {
+func NewServerService(serverRepository repository.ServerRepository) ServerService {
 	return &serverService{
 		serverRepo: serverRepository,
 	}
